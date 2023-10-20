@@ -1,0 +1,21 @@
+use Libraries.Compute.Statistics.DataFrame
+use Libraries.Containers.Array
+use Libraries.System.File
+use Libraries.Compute.Statistics.Transforms.SplitRowsTransform
+use Libraries.Compute.Statistics.Transforms.ColumnRowFilterTransform
+
+
+
+action Main
+    output "hello"
+    DataFrame frame
+    frame:Load("Iris.csv")
+
+//    output frame:GetSize()
+
+    frame:AddSelectedColumn(0)
+    frame:AddSelectedColumn(1)
+
+    Array<DataFrame> frames = frame:SplitSelectedColumnsRandomlyByRows(0.5,0)
+    output frame:ToText()
+end
