@@ -5,6 +5,7 @@ class BayesianModel
     HashTable<text, number> probabilities
     HashTable<text, HashTable<text, number>> likelihoods
     number evidence = 0.0
+    DataFrame information
     
 
     action Initialize(HashTable<text, number> initialProbabilities, HashTable<text, HashTable<text, number>> initialLikelihoods, number initialEvidence)
@@ -37,5 +38,10 @@ class BayesianModel
 
     action setEvidence(number newEvidence)
         evidence = newEvidence
+    end
+
+    //  Saves a csv with data into Bayes folder
+    action saveFrame(DataFrame frame)
+        frame:Save("dataframe.csv")
     end
 end
