@@ -43,6 +43,13 @@ class BayesianModel
         evidence = newEvidence
     end
 
+    /*  
+        Save information into dataframe variable
+
+        - Currently does not accept hashtable within hashtable
+        - Not entirely sure if function should be here or in Main, can always move
+            around if needed.
+    */
     action setDataFrame(HashTable<text, number> data)
         TextColumn textCol
         NumberColumn numCol
@@ -50,17 +57,21 @@ class BayesianModel
         Iterator<text> keyIt = data:GetKeyIterator()
         Iterator<number> valIt = data:GetValueIterator()      
 
+        //  Iterate over hashtable while not empty
         repeat while keyIt:HasNext()
             text word = keyIt:Next()
             number num = valIt:Next()
-    
+
+            //  Save values into columns
             textCol:Add(word)
             numCol:Add(num)
         end
         
+        //  Populate dataframe class variable
         information:AddColumn(0, textCol)
         information:AddColumn(1, numCol)
 
+        //  Output information on dataframe into console
         output information:ToText()
     end
 
