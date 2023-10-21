@@ -1,6 +1,9 @@
 use Libraries.Compute.Statistics.DataFrame
 use Libraries.Containers.HashTable
 
+use Libraries.Compute.Statistics.Columns.all
+use Libraries.Containers.Iterator
+
 class BayesianModel
     HashTable<text, number> probabilities
     HashTable<text, HashTable<text, number>> likelihoods
@@ -38,6 +41,27 @@ class BayesianModel
 
     action setEvidence(number newEvidence)
         evidence = newEvidence
+    end
+
+    action setDataFrame(HashTable<text, number> data)
+        TextColumn textCol
+        NumberColumn numCol
+
+        Iterator<text> keyIt = data:GetKeyIterator()
+        Iterator<number> valIt = data:GetValueIterator()      
+
+        repeat while keyIt:HasNext()
+            text word = keyIt:Next()
+            number num = valIt:Next()
+    
+            textCol:Add(word)
+            numCol:Add(num)
+        end
+        
+        information:AddColumn(0, textCol)
+        information:AddColumn(1, numCol)
+
+        output information:ToText()
     end
 
     //  Saves a csv with data into Bayes folder
