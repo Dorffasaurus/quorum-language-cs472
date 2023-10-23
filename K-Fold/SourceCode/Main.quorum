@@ -1,21 +1,40 @@
 use Libraries.Compute.Statistics.DataFrame
 use Libraries.Containers.Array
-use Libraries.System.File
-use Libraries.Compute.Statistics.Transforms.SplitRowsTransform
-use Libraries.Compute.Statistics.Transforms.ColumnRowFilterTransform
-
-
+use Libraries.Containers.List
 
 action Main
-    output "hello"
     DataFrame frame
     frame:Load("Iris.csv")
 
-//    output frame:GetSize()
+    // List to hold all folds
+    List<DataFrame> folds
 
-    frame:AddSelectedColumn(0)
-    frame:AddSelectedColumn(1)
+    // Need to figure out even k-folds
+    k = 5.0     // For now a hardcored var
+    seed = 0    // will be random later, set value for testing
+    n = 0.0  
+    n = 1/k
+    i = 0
+    repeat while i < k
+        // Add all columns
+        j = 0
+        repeat while j < frame:GetSize()
+            frame:AddSelectedColumn(j)
+            j = j + 1
+        end
+        
+        //Split Dataframe
+        Array<DataFrame> frames = frame:SplitSelectedColumnsRandomlyByRows(n,seed)
+        folds:Add(frames:Get(0))
+        frame = frames:Get(1)   // Take the remainder for next loop interation
+        i = i + 1
+    end
 
-    Array<DataFrame> frames = frame:SplitSelectedColumnsRandomlyByRows(0.5,0)
-    output frame:ToText()
+    // Output
+    i = 0
+    repeat while i < k
+        output i
+        output folds:Get(i):ToText()
+        i = i + 1
+    end
 end
