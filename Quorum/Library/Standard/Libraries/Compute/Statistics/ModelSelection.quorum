@@ -1,0 +1,80 @@
+package Libraries.Compute.Statistics
+
+use Libraries.Compute.Statistics.DataFrame
+use Libraries.Compute.Statistics.Transforms.SplitRowsTransform
+use Libraries.Containers.Array
+
+class ModelSelection
+    /*
+        The KFold function takes a data frame and transforms it into k number of DataFrames with copies of all of the
+        data inside them. This operation is synchronized across all columns so that it is the same split everywhere.
+        
+        Attribute: The number of folds/splits that will be done to the dataframe
+        Attribute: Parameter seed The seed passed to the random number generator.
+        Attribute: Returns an array of DataFrame objects with k number of dataframes based on what was passed in
+        
+        Attribute: Matthew Shiroma
+        Attribute: Example
+        use Libraries.Compute.Statistics.DataFrame
+        use Libraries.Containers.Array
+        
+        DataFrame frame
+        frame:LoadFromCommaSeparatedValue(
+        "Hello, Hi
+        0, 17
+        1, 19
+        2, 21
+        3, 23
+        4, 25
+        5, 27
+        6, 29
+        7, 31
+        8, 33
+        9, 35
+        10, 35"
+        )
+        
+        frame:AddSelectedColumn(0)
+        frame:AddSelectedColumn(1)
+        
+        k = 5
+        //take half the DataFrame's rows and use a random seed of 0
+        Array<DataFrame> frames = frame:KFold(k, 0, frame)
+
+        // Output
+        i = 0
+        repeat while i < k
+            output frames:Get(i):ToText()
+            i = i + 1
+        end
+    */
+    action KFold(number k, number seed, DataFrame frame) returns Array<DataFrame>
+        // return array
+        Array<DataFrame> folds
+
+        percent = 0.0
+        i = 0
+
+        repeat while i < k
+            percent = 1/(k-i)
+
+            // Add all columns for Transform
+            j = 0
+            repeat while j < frame:GetSize()
+                frame:AddSelectedColumn(j)
+                j = j + 1
+            end
+            
+            SplitRowsTransform transform
+            transform:SetPercent(percent)
+            transform:SetSeed(seed)
+            transform:Transform(frame)
+            folds:Add(transform:GetSelectedFrame())     // for return array
+            frame = transform:GetRemainderFrame()       // for next iteration
+            
+            i = i + 1
+        end
+
+        return folds
+    end
+end
