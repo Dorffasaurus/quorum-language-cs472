@@ -1,40 +1,58 @@
 use Libraries.Compute.Statistics.DataFrame
 use Libraries.Containers.Array
-use Libraries.Containers.List
+use Libraries.Compute.Statistics.Transforms.SplitRowsTransform
+use Libraries.Compute.Random
 
-action Main
-    DataFrame frame
-    frame:Load("Iris.csv")
+class KFold
+    action Main
+        DataFrame frame
+        frame:Load("Iris2.csv")
+    
+        // List to hold all folds
+        Array<DataFrame> folds
+    
+        // Need to figure out even k-folds
+        k = 5.0     // For now a hardcored var
+        Random random
+        seed = random:RandomIntegerBetween(0, 10000)
+//        seed = 0  // can set seed for expected results
 
-    // List to hold all folds
-    List<DataFrame> folds
+        Array<DataFrame> frames = KFold(k,seed,frame)     
 
-    // Need to figure out even k-folds
-    k = 5.0     // For now a hardcored var
-    seed = 0    // will be random later, set value for testing
-    n = 0.0  
-    n = 1/k
-    i = 0
-    repeat while i < k
-        // Add all columns
-        j = 0
-        repeat while j < frame:GetSize()
-            frame:AddSelectedColumn(j)
-            j = j + 1
+        // Output
+        i = 0
+        repeat while i < k
+            output frames:Get(i):ToText()
+            i = i + 1
         end
-        
-        //Split Dataframe
-        Array<DataFrame> frames = frame:SplitSelectedColumnsRandomlyByRows(n,seed)
-        folds:Add(frames:Get(0))
-        frame = frames:Get(1)   // Take the remainder for next loop interation
-        i = i + 1
     end
+    
+    action KFold(number k, number seed, DataFrame frame) returns Array<DataFrame>
+        // return array
+        Array<DataFrame> folds
 
-    // Output
-    i = 0
-    repeat while i < k
-        output i
-        output folds:Get(i):ToText()
-        i = i + 1
+        percent = 0.0
+        i = 0
+
+        repeat while i < k
+            percent = 1/(k-i)
+
+            // Add all columns for Transform
+            j = 0
+            repeat while j < frame:GetSize()
+                frame:AddSelectedColumn(j)
+                j = j + 1
+            end
+            
+            SplitRowsTransform transform
+            transform:SetPercent(percent)
+            transform:Transform(frame)
+            folds:Add(transform:GetSelectedFrame())     // for return array
+            frame = transform:GetRemainderFrame()       // for next iteration
+            
+            i = i + 1
+        end
+
+        return folds
     end
 end
