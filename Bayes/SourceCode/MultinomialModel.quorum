@@ -5,6 +5,8 @@ use Libraries.Containers.Array
 use Libraries.Containers.Iterator
 use Libraries.Containers.Support.HashTableIterator
 use Libraries.Containers.Support.HashTableKeyIterator
+use Libraries.Compute.Statistics.Columns.NumberColumn
+use Libraries.Compute.Statistics.Columns.TextColumn
 
 class BayesianModel
   private  HashTable<text, number> probabilities
@@ -21,36 +23,37 @@ class BayesianModel
     // Getter methods for accessing the model parameters
 
     // Get the class probabilities
-    action getProbabilities() returns HashTable<text, number>
+    action GetProbabilities() returns HashTable<text, number>
         return probabilities
     end
 
     // Get the word likelihoods for each class
-    action getLikelihoods() returns HashTable<text, HashTable<text, number>>
+    action GetLikelihoods() returns HashTable<text, HashTable<text, number>>
         return likelihoods
     end
 
     // Get the evidence value
-    action getEvidence() returns number
+    action GetEvidence() returns number
         return evidence
     end
 
     // Setter methods for updating the model parameters
 
     // Set new class probabilities
-    action setProbabilities(HashTable<text, number> newProbabilities)
+    action SetProbabilities(HashTable<text, number> newProbabilities)
         probabilities = newProbabilities
     end
 
     // Set new word likelihoods for each class
-    action setLikelihoods(HashTable<text, HashTable<text, number>> newLikelihoods)
+    action SetLikelihoods(HashTable<text, HashTable<text, number>> newLikelihoods)
         likelihoods = newLikelihoods
     end
 
     // Set a new evidence value
-    action setEvidence(number newEvidence)
+    action SetEvidence(number newEvidence)
         evidence = newEvidence
     end
+
     action Train(DataFrame frame)
         DataFrameColumn tweet = frame:GetColumn(0)
         DataFrameColumn label = frame:GetColumn(1)
@@ -72,5 +75,42 @@ class BayesianModel
             
             end
         
+    end
+    action SaveModel()
+        DataFrame df
+        TextColumn ClassList 
+        ClassList:SetHeader("Classes")
+        NumberColumn Probs
+        Probs:SetHeader("Probabilities")
+        TextColumn Features
+        Features:SetHeader("Features")
+        NumberColumn Likes
+        Likes:SetHeader("Likelihoods")
+        TextColumn MatchedClass
+        MatchedClass:SetHeader("Matching Class")
+        Iterator<text> Classes = probabilities:GetKeyIterator()
+        repeat while Classes:HasNext()
+            text ClassName = Classes:Next()
+            ClassList:Add(ClassName)
+            Probs:Add(probabilities:GetValue(ClassName))
+        end
+        Classes = likelihoods:GetKeyIterator()
+        repeat while Classes:HasNext()
+            ClassName = Classes:Next()
+            HashTable<text,number> Feats = likelihoods:GetValue(ClassName)
+            Iterator<text> Words = Feats:GetKeyIterator()
+            repeat while Words:HasNext()
+                MatchedClass:Add(ClassName)
+                text word = Words:Next()
+                Features:Add(word) 
+                Likes:Add(Feats:GetValue(word))
+            end
+        end
+        df:AddColumn(0,ClassList)
+        df:AddColumn(1,Probs) 
+        df:AddColumn(2,Features) 
+        df:AddColumn(3,Likes) 
+        df:AddColumn(4,MatchedClass)
+        df:Save("SavedModel.csv")
     end
 end
