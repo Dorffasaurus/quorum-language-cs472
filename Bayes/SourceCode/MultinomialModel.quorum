@@ -7,12 +7,19 @@ use Libraries.Containers.Support.HashTableIterator
 use Libraries.Containers.Support.HashTableKeyIterator
 use Libraries.Compute.Statistics.Columns.NumberColumn
 use Libraries.Compute.Statistics.Columns.TextColumn
+use Libraries.Language.Errors.UndefinedObjectError
 
 class BayesianModel
   private  HashTable<text, number> probabilities
   private  HashTable<text, HashTable<text, number>> likelihoods
   private  number evidence = 0.0
-
+    on create
+    HashTable<text,number> P
+    HashTable<text, HashTable<text, number>> L
+    SetProbabilities(P)
+    SetLikelihoods(L)
+    SetEvidence(0.0)
+    end
     // Constructor to initialize the Bayesian model with probabilities, likelihoods, and evidence
     action Initialize(HashTable<text, number> initialProbabilities, HashTable<text, HashTable<text, number>> initialLikelihoods, number initialEvidence)
         probabilities = initialProbabilities  // Set the initial class probabilities
@@ -54,7 +61,8 @@ class BayesianModel
         evidence = newEvidence
     end
 
-    action Train(DataFrame frame)
+    action TrainProbabilities(DataFrame frame)
+        
         DataFrameColumn tweet = frame:GetColumn(0)
         DataFrameColumn label = frame:GetColumn(1)
         integer test = frame:GetSize()
@@ -72,9 +80,44 @@ class BayesianModel
                 number probability = -1
                 probability = (100 * (value / TotalWords)) /100
                 probabilities:Add(Class,probability)
-            
             end
+        TrainLikelihoods(labels,tweets)
         
+    end
+
+    action TrainLikelihoods(Array<text> Classes,Array<text> Features)
+        Iterator<text> C = Classes:GetIterator()
+        Iterator<text> F = Features:GetIterator()
+        repeat while C:HasNext()
+            text PickedClass = C:Next()
+            text PickedFeature = F:Next()
+            HashTable<text,number> CurrentFeature
+            HashTable<text,number> MM
+            check 
+                MM = likelihoods:GetValue(PickedClass)
+                MM:IsEmpty()
+            detect e is UndefinedObjectError
+                MM = CurrentFeature   
+            end
+            CurrentFeature = MM
+            WordFrequency  wf
+            HashTable<text,integer> Counted = wf:CalculateText(PickedFeature)
+            Array<text> Keys = Counted:CopyToKeyArray()
+            Iterator<text> KeysItr = Keys:GetIterator()
+            repeat while KeysItr:HasNext()
+                number WordCount = 0
+                text CurrentKey = KeysItr:Next()
+                    check
+                        WordCount = CurrentFeature:GetValue(CurrentKey)
+                        WordCount = WordCount + Counted:GetValue(CurrentKey)
+                        CurrentFeature:Add(CurrentKey, WordCount)
+                    detect e is UndefinedObjectError
+                        integer CurrCount = Counted:GetValue(CurrentKey)
+                        CurrentFeature:Add(CurrentKey, CurrCount)
+                        end 
+                end
+            likelihoods:Add(PickedClass,CurrentFeature)        
+        end
     end
     action SaveModel()
         DataFrame df
