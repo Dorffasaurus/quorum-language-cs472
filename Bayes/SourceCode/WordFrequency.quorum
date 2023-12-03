@@ -13,6 +13,7 @@ use Libraries.Language.Errors.UndefinedObjectError
 class WordFrequency
     private text FileName = ""
     private HashTable<text, integer> WordCountMap
+    private WordCounter = 0
 
     public action SetFilePath(text fileName)
         FileName = fileName
@@ -62,7 +63,59 @@ class WordFrequency
 
         return true
     end
-
+    // This function sets the map back to empty so it can be reused
+    public action ResetMap
+        WordCountMap:Empty()
+    end
+    
+    public action GetWordCounter() returns integer
+        return WordCounter
+    end
+    // This Function takes in an array and will classify the entire array 
+    public action CalculateFromArray(Array<text> TextToBeClassified) returns HashTable<text,integer>
+    Iterator<text> OuterItr = TextToBeClassified:GetIterator()
+        repeat while OuterItr:HasNext()
+            text section = OuterItr:Next()
+            Array<text> Words = section:Split(" ")
+            Iterator<text> WordItr = Words:GetIterator()
+                repeat while WordItr:HasNext()
+                    text word = WordItr:Next()
+                    WordCounter = WordCounter + 1
+                    check
+                        integer count = WordCountMap:GetValue(word)
+                        count = count + 1
+                        WordCountMap:Set(word, count)
+                    detect e is UndefinedObjectError
+                        WordCountMap:Set(word, 1)
+                    end                     
+            
+                end
+        end
+        return WordCountMap
+    end
+    // This function takes in a text value to be classified
+    public action CalculateText(text InputText) returns HashTable<text,integer>
+        check
+            InputText:IsEmpty()
+        detect e is Error
+            HashTable<text,integer> EmptyTable
+            return EmptyTable
+        end
+        Array<text> Words = InputText:Split(" ")
+        Iterator<text> WordItr = Words:GetIterator()
+    repeat while WordItr:HasNext()
+            text word = WordItr:Next()
+            WordCounter = WordCounter + 1
+            check
+                integer count = WordCountMap:GetValue(word)
+                count = count + 1
+                WordCountMap:Set(word, count)
+            detect e is UndefinedObjectError
+                WordCountMap:Set(word, 1)
+             end
+        end
+        return WordCountMap
+    end
     public action GetTotalWords returns integer
         Iterator<text> wordMapItr = WordCountMap:GetKeyIterator()
         integer total = 0
