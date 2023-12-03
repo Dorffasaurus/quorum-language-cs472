@@ -1,5 +1,10 @@
 use Libraries.Compute.Statistics.DataFrame
 use Libraries.Containers.HashTable
+use Libraries.Compute.Statistics.DataFrameColumn
+use Libraries.Containers.Array
+use Libraries.Containers.Iterator
+use Libraries.Containers.Support.HashTableIterator
+use Libraries.Containers.Support.HashTableKeyIterator
 
 class BayesianModel
   private  HashTable<text, number> probabilities
@@ -45,5 +50,27 @@ class BayesianModel
     // Set a new evidence value
     action setEvidence(number newEvidence)
         evidence = newEvidence
+    end
+    action Train(DataFrame frame)
+        DataFrameColumn tweet = frame:GetColumn(0)
+        DataFrameColumn label = frame:GetColumn(1)
+        integer test = frame:GetSize()
+        Array<text> tweets
+        Array<text> labels
+        tweets = tweet:ConvertToTextArray()
+        labels = label:ConvertToTextArray()
+        WordFrequency LabelWF
+        HashTable<text,integer> classHash = LabelWF:CalculateFromArray(labels)
+        number TotalWords = LabelWF:GetTotalWords()    
+        Iterator<text> classes = classHash:GetKeyIterator()
+            repeat while classes:HasNext()
+                text Class = classes:Next()
+                number value = classHash:GetValue(Class)
+                number probability = -1
+                probability = (100 * (value / TotalWords)) /100
+                probabilities:Add(Class,probability)
+            
+            end
+        
     end
 end
