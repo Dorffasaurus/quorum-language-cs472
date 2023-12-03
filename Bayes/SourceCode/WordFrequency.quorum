@@ -13,7 +13,7 @@ use Libraries.Language.Errors.UndefinedObjectError
 class WordFrequency
     private text FileName = ""
     private HashTable<text, integer> WordCountMap
-    private WordCounter = 0
+    private integer WordCounter = 0
 
     public action SetFilePath(text fileName)
         FileName = fileName
