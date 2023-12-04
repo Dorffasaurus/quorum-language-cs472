@@ -5,7 +5,7 @@
     "IOSAssets" : "media",
     "IOS_BUNDLE" : "org.quorumlanguage",
     "IOS_DEVICE" : "iPhone 14 Simulator",
-    "Main" : "/SourceCode/Main.quorum",
+    "Main" : "\SourceCode\ClassificationTest.quorum",
     "Project Version" : "1.0",
     "ProjectName" : "Bayes",
     "ProjectType" : "JavaType",

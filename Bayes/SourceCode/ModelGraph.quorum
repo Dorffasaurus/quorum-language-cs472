@@ -1,0 +1,42 @@
+use Libraries.Compute.Statistics.DataFrame
+use Libraries.Compute.Statistics.Columns.TextColumn
+use Libraries.Compute.Statistics.Columns.NumberColumn
+use Libraries.Interface.Controls.Charts.BarChart
+use Libraries.Containers.HashTable
+use Libraries.Containers.Iterator
+
+class ModelGraphs
+    action PrintBarChart(HashTable<text, integer> WordFreq) returns BarChart
+        DataFrame frame
+        TextColumn textCol
+        NumberColumn numCol
+        
+        textCol:SetHeader("word")
+        numCol:SetHeader("occurrences")
+        
+        Iterator<text> FreqItr = WordFreq:GetKeyIterator()
+
+        repeat while FreqItr:HasNext()
+            text word = FreqItr:Next()
+            number value = WordFreq:GetValue(word)
+            textCol:Add(word)
+            numCol:Add(value)
+        end
+
+        frame:AddColumn(textCol)
+        frame:AddColumn(numCol)  
+        
+        frame:AddSelectedFactors("word")
+        frame:AddSelectedColumns("occurrences")
+
+        BarChart chart = frame:BarChart()
+    
+        chart:SetXAxisTitle("Terms found")
+        chart:SetYAxisTitle("Occurrence Frequencies")
+        chart:SetTitle("Number of Word Occurrences from File")
+        chart:ShowLegend(false)
+
+        return chart
+    end
+
+end

@@ -1,6 +1,7 @@
 use Libraries.Containers.HashTable
 use Libraries.Testing.Tester
 use Libraries.Testing.Test
+use Libraries.Compute.Statistics.DataFrame
 
 // TRAIN
 
@@ -42,6 +43,9 @@ if tOneClassifier:classifyDocument(tOneWF:GetFrequencyMap()):Equals("Neutral")
 else
     output "Test 1: Failed"
 end
+
+ModelGraphs graph
+graph:PrintBarChart(tOneWF:GetFrequencyMap()):Display()
 
 // TEST TWO: POSITIVE
 WordFrequency tTwoWF
