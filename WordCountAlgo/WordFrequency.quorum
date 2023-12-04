@@ -18,13 +18,16 @@ class WordFrequency
     // number of stopwords
     private integer wordcount = 0
    
-
+    /// Function GetFrequencyMap(): gets the word count map
+    /// @return HashTable<text, integer> WordCountMap
     public action GetFrequencyMap returns HashTable<text, integer>
         return WordCountMap
     end
 
-    // TODO: take in text parameter instead of file, return hashtable
-    //       replicate function without file input, only text (i.e. tweet, article)
+    /// Function SetFrequencyMap(): sets WordCountMap by processing a text file, or
+    ///     a string of texts
+    /// @param text wordinput 
+    /// @return HashTable<text, integer> containing the word count
     public action SetFrequencyMap(text wordinput) returns HashTable<text, integer>
         boolean isfile = true
         File inFile
@@ -35,7 +38,8 @@ class WordFrequency
         check        
             reader:OpenForRead(inFile)
         detect e is FileNotFoundError
-//            output e:GetErrorMessage()
+            // ignore error since this is intentional
+            // output e:GetErrorMessage()
             // process as text input
             isfile = false
         end
@@ -43,6 +47,8 @@ class WordFrequency
         // -- process as input file --
         if isfile
             text fileContents = ""
+            
+            // read contents of file, split words for processing
             repeat while not reader:IsAtEndOfFile()
                 fileContents = fileContents + reader:ReadLine() + " "
             end
@@ -55,8 +61,9 @@ class WordFrequency
             Array<text> wordArr = fileContents:Split(" ")
             Iterator<text> wordItr = wordArr:GetIterator()
     
+            // process words, check for stopwords
             repeat while wordItr:HasNext()
-                text word = wordItr:Next()
+                text word = wordItr:Next():ToUpperCase()
 
                 if not StopWords:HasKey(word)
                     // add words that are not stopwords
@@ -84,15 +91,20 @@ class WordFrequency
 
         // iterate through array, input into HashTable
         repeat while wordItr:HasNext()
-            text word = wordItr:Next()
-            check
-                integer count = WordCountMap:GetValue(word)
-                count = count + 1
-                WordCountMap:Set(word, count)
-            detect e is UndefinedObjectError
-                WordCountMap:Set(word, 1)
-                // increment the total number of words
-                wordcount = wordcount + 1
+            text word = wordItr:Next():ToUpperCase()
+            if not StopWords:HasKey(word)
+                check
+                    integer count = WordCountMap:GetValue(word)
+                    count = count + 1
+                    WordCountMap:Set(word, count)
+                detect e is UndefinedObjectError
+                    // edge case, empty text
+                    if not word:GetSize():Equals(0)
+                        WordCountMap:Set(word, 1)
+                        // increment the total number of words
+                        wordcount = wordcount + 1
+                    end
+                end
             end
         end
 
@@ -125,7 +137,7 @@ class WordFrequency
             integer i = 0
             // add contents of array into hashtable
             repeat while i < words:GetSize()
-                StopWords:Add(words:Get(i), true)
+                StopWords:Add(words:Get(i):ToUpperCase(), true)
                 i = i + 1
             end
         end
@@ -148,6 +160,9 @@ class WordFrequency
         return wordcount
     end
 
+    /// Function PrintFrequencies: Prints the contents of the word frequency map
+    /// @param N/A
+    /// @return N/A
     public action PrintFrequencies
         Iterator<text> wordMapItr = WordCountMap:GetKeyIterator()
         repeat while wordMapItr:HasNext()
@@ -158,3 +173,5 @@ class WordFrequency
     end
     
 end
+
+/// end off file wordfrequency.quorum
