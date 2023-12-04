@@ -1,5 +1,8 @@
 use Libraries.Containers.HashTable
-// Training Phase
+use Libraries.Testing.Tester
+use Libraries.Testing.Test
+
+// TRAIN
 
 HashTable<text,number> trainingProbabilities  
 trainingProbabilities:Add ("Positive", 0.3)
@@ -24,33 +27,49 @@ neutralFeatures:Add("ok" , 0.4)
 neutralFeatures:Add("fine" , 0.2)
 trainingLikelihoods:Add("Neutral", neutralFeatures)
 
-WordFrequency wf
-wf:SetFilePath("testNeutral.txt")
-wf:Calculate()
-HashTable<text,integer> wordCountNegative = wf:GetFrequencyMap()
+
+// TEST ONE: NEUTRAL
+WordFrequency tOneWF
+BayesianModel tOneModel 
+BayesianMultinomialClassifier tOneClassifier
+tOneWF:ResetMap()
+tOneWF:SetFilePath("/tests/neu_one.txt")
+tOneWF:Calculate()
+tOneModel:Initialize(trainingProbabilities, trainingLikelihoods, tOneWF:GetTotalWords() )
+tOneClassifier:Initialize(tOneModel)
+if tOneClassifier:classifyDocument(tOneWF:GetFrequencyMap()):Equals("Neutral")
+    output "Test 1: Passed"
+else
+    output "Test 1: Failed"
+end
+
+// TEST TWO: POSITIVE
+WordFrequency tTwoWF
+BayesianModel tTwoModel 
+BayesianMultinomialClassifier tTwoClassifier
+tTwoWF:ResetMap()
+tTwoWF:SetFilePath("/tests/pos_one.txt")
+tTwoWF:Calculate()
+tTwoModel:Initialize(trainingProbabilities, trainingLikelihoods, tTwoWF:GetTotalWords() )
+tTwoClassifier:Initialize(tTwoModel)
+if tTwoClassifier:classifyDocument(tTwoWF:GetFrequencyMap()):Equals("Positive")
+    output "Test 2: Passed"
+else
+    output "Test 2: Failed"
+end
 
 
-
-
-
-
-integer trainingEvidence = wf:GetTotalWords() // Total training documents
-
-BayesianModel model 
-model:Initialize(trainingProbabilities, trainingLikelihoods, trainingEvidence)
-
-BayesianMultinomialClassifier classifier
-classifier:Initialize(model)
-// Prediction Phase
-
-
-predictedClass = classifier:classifyDocument(wordCountNegative)
-output predictedClass
-
-
-
-
-
-
-
-
+// TEST THREE: NEGATIVE
+WordFrequency tThreeWF
+BayesianModel tThreeModel 
+BayesianMultinomialClassifier tThreeClassifier
+tThreeWF:ResetMap()
+tThreeWF:SetFilePath("/tests/neg_one.txt")
+tThreeWF:Calculate()
+tThreeModel:Initialize(trainingProbabilities, trainingLikelihoods, tThreeWF:GetTotalWords() )
+tThreeClassifier:Initialize(tThreeModel)
+if tThreeClassifier:classifyDocument(tThreeWF:GetFrequencyMap()):Equals("Negative")
+    output "Test 3: Passed"
+else
+    output "Test 3: Failed"
+end
