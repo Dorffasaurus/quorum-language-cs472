@@ -1,0 +1,234 @@
+/* file unittest.quorum
+The unit tests for the wordfrequency method
+usage: in main.quorum:
+        WordFrequency wf
+        WordFrequencyTest wf_test
+        wf_test:Main()
+*/
+
+use Libraries.Testing.Test
+use Libraries.Testing.Tester
+use Libraries.Containers.HashTable
+use Libraries.Containers.Support.HashTableIterator
+use Libraries.Containers.Support.HashTableKeyIterator
+use Libraries.Containers.Iterator
+use Libraries.Containers.Array
+
+use WordFrequency
+
+class WordFrequencyTest
+    private integer testcases = 0  
+    private integer assertions = 0
+    private integer test_pass = 0
+    private integer assert_pass = 0
+    action Main
+        output "=================== Running unit tests for wordfrequency.quorum ==================="
+        HashTable<text, integer> expected
+        text testinput = ""
+
+        // ----- test stop words -----
+        TestStopWords()
+        assertions = assertions + 1
+
+        // ----- test case 1 -----
+        
+        testcases = testcases + 1
+        testinput = "This is a test string This string has some words"
+        output "CHECK: Input = " + testinput
+
+        expected:Set("test", 1)
+        expected:Set("string", 2)
+
+        assertions = assertions + 2
+        TestSetFrequencyMap(testinput, expected)
+        TestGetWordCount(testinput, 2)
+
+        if assert_pass = assertions
+            test_pass = test_pass + 1
+        end
+        // ----- test case 2 -----
+
+        testcases = testcases + 1
+
+        // empty hash table
+        expected:Empty()
+        testinput = ""
+        output "CHECK: empty text"
+
+        assertions = assertions + 1
+        TestGetWordCount(testinput, 0)
+
+        if assert_pass = assertions
+            test_pass = test_pass + 1
+        end
+
+        // ----- test case 3 -----
+        
+        testcases = testcases + 1
+
+        output "CHECK: Repetitive stop words"
+
+        testinput = "this seriously seriously seriously is immediate immediate information of of of importance"      
+        expected:Empty()
+        
+        assertions = assertions + 2
+        TestSetFrequencyMap(testinput, expected)
+        TestGetWordCount(testinput, 0)
+
+        if assert_pass = assertions
+            test_pass = test_pass + 1
+        end
+
+        // test case 4
+
+        testcases = testcases + 1
+
+        output "CHECK: Case insensitivity"
+
+        testinput = "ThIS iS a tEST STRing tHIS StRING hAs sOme woRDS"
+
+        assertions = assertions + 2
+        expected:Set("test", 1)
+        expected:Set("string", 2)
+        
+        TestSetFrequencyMap(testinput, expected)
+        TestGetWordCount(testinput, 2)
+
+        if assert_pass = assertions
+            test_pass = test_pass + 1
+        end
+
+        output "==================================================================================="
+        
+        if test_pass = testcases and assert_pass = assertions
+            output "All test cases passed (" + assertions + " assertions in " + testcases + " test cases)"
+        else
+            output "Assertions: " + assertions + " | Passed: " + assert_pass
+            output "Test Cases: " + testcases + " | Passed: " + test_pass    
+        end
+    end
+
+    action TestSetFrequencyMap(text inputval, HashTable<text, integer> expected)
+        // Arrange
+        WordFrequency wf
+
+        wf:SetStopWords("stopwords-en.txt")
+
+        // Act
+        HashTable<text, integer> actual = wf:SetFrequencyMap(inputval)
+
+        // Assert | Check that expected = actual
+//        Check(GetHashCode(expected), GetHashCode(actual))
+        if CompareHashTables(expected, actual)
+            assert_pass = assert_pass + 1
+        else
+            output "ASSERT SetFrequencymap: | FAILED"
+            output "Expected table size: " + expected:GetSize()
+            output "Actual table size:   " + actual:GetSize()
+            output "----- Missing expected values -----"
+            Iterator<text> iter = expected:GetKeyIterator()
+            repeat while iter:HasNext()
+                text key = iter:Next()
+                integer value = expected:GetValue(key)
+    
+                // check if key exists in b
+                if not actual:HasKey(key)
+                   output key + " " + value
+                end
+            end
+            output "-----------------------------------"
+        end
+    end
+
+    // Action TestStopWords: Ensures no stopwords are considered in wf
+    action TestStopWords
+        // Arrange
+        WordFrequency wordFrequency
+        text stopwordsFile = "stopwords-en.txt" // stopwords file
+        
+        // initialize table of stopwords
+        wordFrequency:SetStopWords(stopwordsFile)
+
+        // Act
+        // Set frequency map of stopwords (should be empty)
+        HashTable<text, integer> stopwords = wordFrequency:SetFrequencyMap(stopwordsFile)
+
+        // Assert
+        // stopwords hashtable should be empty, as none of the stopwords are added to the map 
+        if stopwords:GetSize() = 0
+            assert_pass = assert_pass + 1
+        else
+            output "ASSERT: Ignore stop words | FAILED"
+            // TODO find values to use as expected (with known stopwords and count file)
+            output "Expected: 0"
+            output "Actual: " + stopwords:GetSize()
+//            output "-------- Missed stop words --------"
+//            Iterator<text> iter = stopwords:GetKeyIterator()
+//            repeat while iter:HasNext()
+//                output iter:Next()
+//            end
+//            output " ----------------------------------"
+        end
+    end
+
+    action TestGetWordCount(text inputval, integer expected)
+        // Arrange
+        WordFrequency wf
+        wf:SetStopWords("stopwords-en.txt")
+        wf:SetFrequencyMap(inputval)
+
+        // Act
+        integer wordCount = wf:GetWordCount()
+        HashTable<text, integer> wfmap = wf:GetFrequencyMap()
+        HashTable<text, boolean> stopwords = wf:GetStopWords()
+
+        // Assert
+        if not (wordCount = expected) // assuming no stopwords in the input
+            output "ASSERT: TestGetWordCount | FAILED"
+            output "Expected: " + expected
+            output "Actual:   " + wordCount
+            Iterator<text> iter = wfmap:GetKeyIterator()
+            repeat while iter:HasNext()
+                word = iter:Next()
+                if not stopwords:HasKey(word:ToUpperCase())
+                    output word
+                end
+            end
+        else 
+            assert_pass = assert_pass + 1
+        end
+    end
+
+    /* Function CompareHashTables(): Returns true if both hash tables are equivalent */
+    action CompareHashTables(HashTable<text, integer> a, HashTable<text, integer> b) returns boolean
+        // check to ensure both hashtables match in size
+        if not a:GetSize():Equals(b:GetSize())
+            return false
+        end
+
+        // iterate through hashtables using hashtable iterator method, return false if not equal
+        Iterator<text> iter = a:GetKeyIterator()
+        repeat while iter:HasNext()
+            text key = iter:Next()
+            integer value = a:GetValue(key)
+
+            // check if key exists in b
+            if not b:HasKey(key)
+               return false
+            end
+            // check if equivalent value exists in b
+            if not value:Equals(b:GetValue(key))
+                return false
+            end
+        end
+        return true
+    end
+
+    action GetPassCases returns integer
+        return test_pass
+    end
+
+    action GetPassAssertions returns integer
+        return assert_pass
+    end
+end
