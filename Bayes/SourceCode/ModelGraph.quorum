@@ -15,7 +15,7 @@ class ModelGraphs
     Returns a bar chart that displays the all words found in file and the amount
     of occurrences each word has within file.
 */
-    action WordsChart(HashTable<text, integer> WordFreq) returns BarChart
+    action WordsChart(HashTable<text, integer> WordFreq, text title, text xAxisLabel, text yAxisLabel) returns BarChart
         DataFrame frame
         TextColumn textCol
         NumberColumn numCol
@@ -42,9 +42,9 @@ class ModelGraphs
 
         BarChart chart = frame:BarChart()
     
-        chart:SetXAxisTitle("Terms found")
-        chart:SetYAxisTitle("Occurrence Frequencies")
-        chart:SetTitle("Number of Word Occurrences from File")
+        chart:SetXAxisTitle(xAxisLabel)
+        chart:SetYAxisTitle(yAxisLabel)
+        chart:SetTitle(title)
         chart:ShowLegend(false)
 
         return chart
@@ -58,7 +58,7 @@ class ModelGraphs
     and divides them into groups based on their class.
 */
     action PercentageChart(HashTable<text, HashTable<text, number>> likelihoods, 
-                                    HashTable<text, integer> WordFreq) returns PieChart
+                                    HashTable<text, integer> WordFreq, text title) returns PieChart
         DataFrame frame
         TextColumn classes
         NumberColumn words
@@ -112,6 +112,8 @@ class ModelGraphs
 
         chart:SetColorPaletteToColorgorical()
         chart:SetFontSize(60)
+
+        chart:SetTitle(title)
             
         return chart
     end
