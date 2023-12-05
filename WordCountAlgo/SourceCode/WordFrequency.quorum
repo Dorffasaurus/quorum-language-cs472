@@ -41,9 +41,9 @@ class WordFrequency
         end
     
         fileContents = fileContents:ToLowerCase()
-        fileContents = fileContents:Replace(".", "")
-        fileContents = fileContents:Replace(",", "")
-        fileContents = fileContents:Replace("  ", "")        
+        fileContents = fileContents:Replace(".", " ")
+        fileContents = fileContents:Replace(",", " ")
+        fileContents = fileContents:Replace("  ", " ")        
 
         Array<text> wordArr = fileContents:Split(" ")
         Iterator<text> wordItr = wordArr:GetIterator()
