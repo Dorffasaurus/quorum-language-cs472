@@ -1,8 +1,11 @@
 package Libraries.Compute.Statistics
 
+use Libraries.Compute.Statistics.DataFrameTransform
 use Libraries.Compute.Statistics.DataFrame
-use Libraries.Compute.Statistics.Transforms.SplitRowsTransform
 use Libraries.Containers.Array
+use Libraries.Compute.Statistics.Transforms.SplitRowsTransform
+use Libraries.Compute.Random
+use Libraries.Compute.Math
 
 class ModelSelection
     /*
@@ -76,5 +79,66 @@ class ModelSelection
         end
 
         return folds
+    end
+
+    /*
+        The LeaveOneOut function takes a data frame and takes one of the rows out into another dataframe. Returning the passed in dataframe
+        missing one row. This operation is synchronized across all columns so that it is the same split everywhere.
+        
+        Attribute: Parameter seed The seed passed to the random number generator.
+        Attribute: Returns an array of DataFrame objects with 1 dataframe with all but one row and another with just one row
+        
+        Attribute: Matthew Shiroma
+        Attribute: Example
+        use Libraries.Compute.Statistics.DataFrame
+        use Libraries.Containers.Array
+        
+        DataFrame frame
+        frame:LoadFromCommaSeparatedValue(
+        "Hello, Hi
+        0, 17
+        1, 19
+        2, 21
+        3, 23
+        4, 25
+        5, 27
+        6, 29
+        7, 31
+        8, 33
+        9, 35
+        10, 35"
+        )
+        
+        frame:AddSelectedColumn(0)
+        frame:AddSelectedColumn(1)
+        
+        Array<DataFrame> frames = frame:LeaveOneOut(0, frame)
+
+        output frames:Get(0):ToText()
+        output frames:Get(1):ToText()
+    */
+
+    action LeaveOneOut(number seed, DataFrame frame) returns Array<DataFrame>
+        Array<DataFrame> returnArray
+
+        Math math
+        number percent =  math:RaiseToPower(frame:CalculateMaximumRows(),-1)    //  1/n doesnt work since it rounds down so using to the ^-1 instead
+
+          
+        // Add all columns for Transform
+         j = 0
+        repeat while j < frame:GetSize()
+            frame:AddSelectedColumn(j)
+            j = j + 1
+        end
+        
+        //  Do transforms now
+        SplitRowsTransform transform
+        transform:SetPercent(percent)
+        transform:SetSeed(seed)
+        transform:Transform(frame)
+        returnArray:Add(transform:GetSelectedFrame())
+        returnArray:Add(transform:GetRemainderFrame())     
+        return returnArray
     end
 end
