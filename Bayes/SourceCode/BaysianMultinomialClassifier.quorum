@@ -13,9 +13,9 @@ class BayesianMultinomialClassifier
     action classifyDocument(HashTable<text, integer> wordCounts) returns text
         // Get the model parameters
         Math Math  // Create an instance of the Math library
-        HashTable<text, number> probabilities = model:getProbabilities()
-        HashTable<text, HashTable<text, number>> likelihoods = model:getLikelihoods()
-        number evidence = model:getEvidence()
+        HashTable<text, number> probabilities = model:GetProbabilities()
+        HashTable<text, HashTable<text, number>> likelihoods = model:GetLikelihoods()
+        number evidence = model:GetEvidence()
 
         HashTable<text, number> posteriors  // Initialize a table to store posterior probabilities
         Iterator<text> probabilitiesItr = probabilities:GetKeyIterator()  // Get an iterator for class probabilities
@@ -31,7 +31,7 @@ class BayesianMultinomialClassifier
                 if likelihoods:GetValue(classLabel):HasKey(word)
                     number likelihood = likelihoods:GetValue(classLabel):GetValue(word)
                     number count = wordCounts:GetValue(word)  // Get the count of the word in the document
-                    posterior = posterior + Math:RaiseToPower(count, likelihood)  // Calculate the posterior probability
+                    posterior = posterior * Math:RaiseToPower(count, likelihood)  // Calculate the posterior probability
                 end
                    
             end

@@ -5,12 +5,21 @@ use Libraries.Containers.Array
 use Libraries.Containers.Iterator
 use Libraries.Containers.Support.HashTableIterator
 use Libraries.Containers.Support.HashTableKeyIterator
+use Libraries.Compute.Statistics.Columns.NumberColumn
+use Libraries.Compute.Statistics.Columns.TextColumn
+use Libraries.Language.Errors.UndefinedObjectError
 
 class BayesianModel
   private  HashTable<text, number> probabilities
   private  HashTable<text, HashTable<text, number>> likelihoods
-  private  number evidence = 0.0
-
+  private  number evidence = 1.0
+    on create
+    HashTable<text,number> P
+    HashTable<text, HashTable<text, number>> L
+    SetProbabilities(P)
+    SetLikelihoods(L)
+    SetEvidence(1.0)
+    end
     // Constructor to initialize the Bayesian model with probabilities, likelihoods, and evidence
     action Initialize(HashTable<text, number> initialProbabilities, HashTable<text, HashTable<text, number>> initialLikelihoods, number initialEvidence)
         probabilities = initialProbabilities  // Set the initial class probabilities
@@ -21,56 +30,185 @@ class BayesianModel
     // Getter methods for accessing the model parameters
 
     // Get the class probabilities
-    action getProbabilities() returns HashTable<text, number>
+    action GetProbabilities() returns HashTable<text, number>
         return probabilities
     end
 
     // Get the word likelihoods for each class
-    action getLikelihoods() returns HashTable<text, HashTable<text, number>>
+    action GetLikelihoods() returns HashTable<text, HashTable<text, number>>
         return likelihoods
     end
 
     // Get the evidence value
-    action getEvidence() returns number
+    action GetEvidence() returns number
         return evidence
     end
 
     // Setter methods for updating the model parameters
 
     // Set new class probabilities
-    action setProbabilities(HashTable<text, number> newProbabilities)
+    action SetProbabilities(HashTable<text, number> newProbabilities)
         probabilities = newProbabilities
     end
 
     // Set new word likelihoods for each class
-    action setLikelihoods(HashTable<text, HashTable<text, number>> newLikelihoods)
+    action SetLikelihoods(HashTable<text, HashTable<text, number>> newLikelihoods)
         likelihoods = newLikelihoods
     end
 
     // Set a new evidence value
-    action setEvidence(number newEvidence)
+    action SetEvidence(number newEvidence)
         evidence = newEvidence
     end
-    action Train(DataFrame frame)
-        DataFrameColumn tweet = frame:GetColumn(0)
-        DataFrameColumn label = frame:GetColumn(1)
+    // This function does the bulk of the work
+    // this trains the model based on the data
+    //Takes in a DataFrame with 0 as the features and 1 as the labels
+    action TrainProbabilities(DataFrame frame)      
+        DataFrameColumn tweet = frame:GetColumn(0) // features 
+        DataFrameColumn label = frame:GetColumn(1) // labels
         integer test = frame:GetSize()
-        Array<text> tweets
+        Array<text> tweets 
         Array<text> labels
-        tweets = tweet:ConvertToTextArray()
-        labels = label:ConvertToTextArray()
-        WordFrequency LabelWF
-        HashTable<text,integer> classHash = LabelWF:CalculateFromArray(labels)
-        number TotalWords = LabelWF:GetTotalWords()    
-        Iterator<text> classes = classHash:GetKeyIterator()
+        tweets = tweet:ConvertToTextArray() // convert features to an array
+        labels = label:ConvertToTextArray() // converts labels to an array
+        WordFrequency LabelWF   // the WordFrequency we'll use to calculate the WordFrequency
+        HashTable<text,integer> classHash = LabelWF:CalculateFromArray(labels) // Calculates the number of labels and how many exist
+        number TotalWords = LabelWF:GetTotalWords() // The total amount of words read 
+        Iterator<text> classes = classHash:GetKeyIterator() // Iterate through the classes
             repeat while classes:HasNext()
                 text Class = classes:Next()
                 number value = classHash:GetValue(Class)
                 number probability = -1
-                probability = (100 * (value / TotalWords)) /100
+                probability = (100 * (value / TotalWords)) /100 // had to do some wonkiness to get it to not floor to 0
                 probabilities:Add(Class,probability)
-            
-            end
+            end // probabilites has been trained now time to train likelihoods 
+        TrainLikelihoods(labels,tweets)
         
+    end
+    action TrainLikelihoods(Array<text> Classes,Array<text> Features)
+        Iterator<text> C = Classes:GetIterator() // class iterator
+        Iterator<text> F = Features:GetIterator()// feature iterator
+        WordFrequency  wf // new word frequency
+        repeat while C:HasNext() // while we still have classes 
+            text PickedClass = C:Next() 
+            text PickedFeature = F:Next()
+            HashTable<text,number> CurrentFeature
+            HashTable<text,number> MM
+            check  // grab the current HashTable for the class
+                MM = likelihoods:GetValue(PickedClass)
+                MM:IsEmpty()
+            detect e is UndefinedObjectError
+                MM = CurrentFeature   
+            end
+            CurrentFeature = MM
+            wf:ResetMap() // reset the map
+            wf:CalculateText(PickedFeature) // calculate the feature
+            wf:RemoveStopWords() // remove the stopwords 
+            HashTable<text,integer> Counted = wf:GetFrequencyMap() //assign the calculated map to Counted
+            Array<text> Keys = Counted:CopyToKeyArray() // make a key array 
+            Iterator<text> KeysItr = Keys:GetIterator() // make an iterator for the array
+            repeat while KeysItr:HasNext() // adds current hash to the existing hash given it exists to create hash that covers new words
+                number WordCount = 0
+                text CurrentKey = KeysItr:Next()
+                    check
+                        WordCount = CurrentFeature:GetValue(CurrentKey)
+                        WordCount = WordCount + Counted:GetValue(CurrentKey)
+                        WordCount = WordCount 
+                        CurrentFeature:Add(CurrentKey, WordCount)
+                    detect e is UndefinedObjectError
+                        number CurrCount = Counted:GetValue(CurrentKey)
+                        CurrentFeature:Add(CurrentKey, CurrCount)
+                        end 
+                end
+            likelihoods:Add(PickedClass,CurrentFeature)      // adds completed has to likliehoods  
+        end
+        LikelihoodUnique()
+    end
+
+    // This function sets the liklihoods using the total number of words for the class  
+    //takes existing Liklihoods hash which now consists of a word and its count and turns it into a word and its likliehood
+    // This is done using the total number of words 
+    action LikelihoodSetTotal()  
+        Iterator<text> ClassItr = probabilities:GetKeyIterator()
+        repeat while ClassItr:HasNext()
+            text ClassName = ClassItr:Next()
+            HashTable<text,number> Words = likelihoods:GetValue(ClassName)
+            Iterator<number> ValueItr = Words:GetValueIterator()
+            number sum = 0
+            repeat while ValueItr:HasNext()
+                sum = sum + ValueItr:Next()
+            end
+            Iterator<text> KeyItr = Words:GetKeyIterator()
+            repeat while KeyItr:HasNext()
+                text word = KeyItr:Next()
+                number CurrValue = Words:GetValue(word)
+                CurrValue = CurrValue / sum
+                Words:Set(word,CurrValue)
+            end
+            likelihoods:Add(ClassName,Words)
+        end
+
+    end
+    // This function fills the likelihoods HashTable using unique words rather than the total amount of words
+    //takes existing Liklihoods hash which now consists of a word and its count and turns it into a word and its likliehood
+    // This is done using the unique number of words
+    // this and the above function are the similiar just using different methods 
+    action LikelihoodUnique()
+        Iterator<text> ClassItr = probabilities:GetKeyIterator()
+        repeat while ClassItr:HasNext()
+            text ClassName = ClassItr:Next()
+            HashTable<text,number> Words = likelihoods:GetValue(ClassName)
+            Iterator<number> ValueItr = Words:GetValueIterator()
+            number sum = Words:GetSize()
+            Iterator<text> KeyItr = Words:GetKeyIterator()
+            repeat while KeyItr:HasNext()
+                text word = KeyItr:Next()
+                number CurrValue = Words:GetValue(word)
+                CurrValue = CurrValue / sum
+                Words:Set(word,CurrValue)
+            end
+            likelihoods:Add(ClassName,Words)
+        end   
+    end
+    // this function saves the model to a dataframe which can be saved to a csv for exporting. 
+    action SaveModel()
+        DataFrame df
+        TextColumn ClassList 
+        ClassList:SetHeader("Classes")
+        NumberColumn Probs
+        Probs:SetHeader("Probabilities")
+        TextColumn Features
+        Features:SetHeader("Features")
+        NumberColumn Likes
+        Likes:SetHeader("Likelihoods")
+        TextColumn MatchedClass
+        MatchedClass:SetHeader("Matching Class")
+        Iterator<text> Classes = probabilities:GetKeyIterator()
+        repeat while Classes:HasNext()
+            text ClassName = Classes:Next()
+            ClassList:Add(ClassName)
+            Probs:Add(probabilities:GetValue(ClassName))
+        end
+        Classes = likelihoods:GetKeyIterator()
+        repeat while Classes:HasNext()
+            ClassName = Classes:Next()
+            HashTable<text,number> Feats = likelihoods:GetValue(ClassName)
+            Iterator<text> Words = Feats:GetKeyIterator()
+            repeat while Words:HasNext()
+                MatchedClass:Add(ClassName)
+                text word = Words:Next()
+                Features:Add(word) 
+                Likes:Add(Feats:GetValue(word))
+            end
+        end
+        df:AddColumn(0,ClassList)
+        df:AddColumn(1,Probs) 
+        df:AddColumn(2,Features) 
+        df:AddColumn(3,Likes) 
+        df:AddColumn(4,MatchedClass)
+        df:Save("SavedModel.csv")
+    end
+    // this action  is to load a model from a csv
+    action LoadModel(text FileName)
     end
 end
