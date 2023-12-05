@@ -38,5 +38,26 @@ class ModelGraphs
 
         return chart
     end
+    
+    action ProbabilityChart(HashTable<text, HashTable<text, number>> likelihoods) returns BarChart
+        DataFrame frame
+        TextColumn textCol
+        NumberColumn numCol
 
+        textCol:SetHeader("word")
+        numCol:SetHeader("probability")
+
+        Iterator<text> LikeliItr = likelihoods:GetKeyIterator()
+
+        repeat while LikeliItr:HasNext()
+            text word = LikeliItr:Next()
+           
+            
+            output word
+        end
+        
+        BarChart chart
+        
+        return chart
+    end
 end
