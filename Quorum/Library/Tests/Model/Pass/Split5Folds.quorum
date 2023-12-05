@@ -1,0 +1,42 @@
+/**
+ *  Libraries.Compute.Statistics Model Selection K Folds test case
+ *
+ *  Expect the dataframe to be split into 5 different dataframe arrays
+ */
+
+use Libraries.Compute.Statistics
+use Libraries.Compute.Statistics
+class Main
+    action Main
+        DataFrame frame
+        frame:LoadFromCommaSeparatedValue(
+            "Hello, Hi
+            0, 17
+            1, 19
+            2, 21
+            3, 23
+            4, 25
+            5, 27
+            6, 29
+            7, 31
+            8, 33
+            9, 35
+            10, 35"
+        )
+        frame:AddSelectedColumn(0)
+        frame:AddSelectedColumn(1)
+        
+        k = 5
+
+        ModelSelection modelSelect
+        //take half the DataFrame's rows and use a random seed of 0
+        Array<DataFrame> frames = modelSelect:KFold(k, 0, frame)
+
+        // Output
+        i = 0
+        repeat while i < k
+            output frames:Get(i):ToText()
+            i = i + 1
+        end
+    end
+end
