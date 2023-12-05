@@ -34,7 +34,7 @@ WordFrequency tOneWF
 BayesianModel tOneModel 
 BayesianMultinomialClassifier tOneClassifier
 tOneWF:ResetMap()
-tOneWF:SetFilePath("/tests/neu_one.txt")
+tOneWF:SetFilePath("/tests/neu_two.txt")
 tOneWF:Calculate()
 tOneModel:Initialize(trainingProbabilities, trainingLikelihoods, tOneWF:GetTotalWords() )
 tOneClassifier:Initialize(tOneModel)
@@ -45,7 +45,7 @@ else
 end
 
 ModelGraphs graph
-graph:PrintBarChart(tOneWF:GetFrequencyMap()):Display()
+graph:PercentageChart(trainingLikelihoods, tOneWF:GetFrequencyMap()):Display()
 
 // TEST TWO: POSITIVE
 WordFrequency tTwoWF
@@ -61,7 +61,6 @@ if tTwoClassifier:classifyDocument(tTwoWF:GetFrequencyMap()):Equals("Positive")
 else
     output "Test 2: Failed"
 end
-
 
 // TEST THREE: NEGATIVE
 WordFrequency tThreeWF

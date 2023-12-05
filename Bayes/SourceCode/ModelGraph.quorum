@@ -2,11 +2,20 @@ use Libraries.Compute.Statistics.DataFrame
 use Libraries.Compute.Statistics.Columns.TextColumn
 use Libraries.Compute.Statistics.Columns.NumberColumn
 use Libraries.Interface.Controls.Charts.BarChart
+use Libraries.Interface.Controls.Charts.PieChart
 use Libraries.Containers.HashTable
 use Libraries.Containers.Iterator
 
+//  class ModelGraphs contains functions to build graphs from passed in hashtables
+
 class ModelGraphs
-    action PrintBarChart(HashTable<text, integer> WordFreq) returns BarChart
+/*
+    Function WordsChart expects the hashtable from WordFrequency class.
+    
+    Returns a bar chart that displays the all words found in file and the amount
+    of occurrences each word has within file.
+*/
+    action WordsChart(HashTable<text, integer> WordFreq) returns BarChart
         DataFrame frame
         TextColumn textCol
         NumberColumn numCol
@@ -14,6 +23,7 @@ class ModelGraphs
         textCol:SetHeader("word")
         numCol:SetHeader("occurrences")
         
+        //  iterate over hashmap with word frequencies
         Iterator<text> FreqItr = WordFreq:GetKeyIterator()
 
         repeat while FreqItr:HasNext()
@@ -23,6 +33,7 @@ class ModelGraphs
             numCol:Add(value)
         end
 
+        //  populate dataframe 
         frame:AddColumn(textCol)
         frame:AddColumn(numCol)  
         
@@ -39,25 +50,69 @@ class ModelGraphs
         return chart
     end
     
-    action ProbabilityChart(HashTable<text, HashTable<text, number>> likelihoods) returns BarChart
+/*
+    Function PercentageChart expects a nested hashtable w/ words and their probabilities
+    w/in a hashtable that contains likelihoods of each class.
+
+    Returns a bar chart that displays all instances and probabilites in nested hashtable 
+    and divides them into groups based on their class.
+*/
+    action PercentageChart(HashTable<text, HashTable<text, number>> likelihoods, 
+                                    HashTable<text, integer> WordFreq) returns PieChart
         DataFrame frame
-        TextColumn textCol
-        NumberColumn numCol
+        TextColumn classes
+        NumberColumn words
 
-        textCol:SetHeader("word")
-        numCol:SetHeader("probability")
+        //   hashtable to store number of word occurrences 
+        HashTable<text, number> amount
 
-        Iterator<text> LikeliItr = likelihoods:GetKeyIterator()
+        //  set header for dataframe variables
+        classes:SetHeader("classes")
+        words:SetHeader("words")
 
-        repeat while LikeliItr:HasNext()
-            text word = LikeliItr:Next()
-           
+        //  iterate over outer hashtable for class data
+        Iterator<text> outerItr = likelihoods:GetKeyIterator()
+        repeat while outerItr:HasNext()
+            text className = outerItr:Next()
             
-            output word
+            classes:Add(className)       //  adds class names to dataframe
+            amount:Add(className, 0)     //  adds class names to hashtable
+
+            //  iterate over inner hashtable for word frequencies
+            Iterator<text> innerItr = WordFreq:GetKeyIterator()
+            repeat while innerItr:HasNext()
+                text word = innerItr:Next()
+        
+                if likelihoods:GetValue(className):HasKey(word)
+                    number count = amount:GetValue(className)
+                    count = count + 1
+                    amount:Add(className, count)
+                end
+            end
         end
         
-        BarChart chart
-        
+        //  iterate over hashtable of frequency values
+        Iterator<text> itr = amount:GetKeyIterator()
+        repeat while itr:HasNext()
+            text word = itr:Next()
+            number val = amount:GetValue(word)
+
+            //  add amount of words found to dataframe 
+            words:Add(val)          
+        end
+
+        //  populate dataframe
+        frame:AddColumn(classes)
+        frame:AddColumn(words)
+
+        frame:AddSelectedFactors("classes")
+        frame:AddSelectedColumns("words")
+
+        PieChart chart = frame:PieChart()
+
+        chart:SetColorPaletteToColorgorical()
+        chart:SetFontSize(60)
+            
         return chart
     end
 end
