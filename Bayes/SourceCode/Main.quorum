@@ -1,0 +1,32 @@
+use Libraries.Compute.Statistics.DataFrame
+use Libraries.Compute.Statistics.DataFrameColumn
+use Libraries.Containers.Array
+use Libraries.Containers.HashTable
+
+
+action Main
+DataFrame frame
+number test = 0.291111
+frame:Load("train.csv")
+frame:RemoveColumnAt(0)
+frame:RemoveColumnAt(0)
+frame:RemoveUndefinedRows()
+DataFrameColumn tweet = frame:GetColumn(0)
+Array<text> tweets
+tweets = tweet:ConvertToTextArray()
+text value = tweets:Get(0)
+
+BayesianModel model
+model:TrainProbabilities(frame)
+model:SaveModel()
+WordFrequency wf 
+HashTable<text,integer> testTable = wf:Calculate_from_file("testPositive.txt")
+BayesianMultinomialClassifier classifier
+classifier:Initialize(model)
+text prediction = classifier:classifyDocument(testTable)
+output prediction
+
+
+
+
+end
