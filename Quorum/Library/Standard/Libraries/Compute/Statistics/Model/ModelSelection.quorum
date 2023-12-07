@@ -1,4 +1,4 @@
-package Libraries.Compute.Statistics
+package Libraries.Compute.Statistics.Model
 
 use Libraries.Compute.Statistics.DataFrameTransform
 use Libraries.Compute.Statistics.DataFrame

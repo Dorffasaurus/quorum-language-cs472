@@ -4,8 +4,7 @@
  *  Expect the dataframe to be split into 5 different dataframe arrays
  */
 
-use Libraries.Compute.Statistics
-use Libraries.Compute.Statistics
+use Libraries.Compute.Statistics.Model
 class Main
     action Main
         DataFrame frame
